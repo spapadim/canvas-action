@@ -1,0 +1,26 @@
+name: 'Canvas LMS action'
+description: 'Github action for Canvas LMS file upload'
+author: 'Spiros Papadimitriou <spapadim@gmail.com>'
+branding:
+  icon: upload-cloud
+  color: gray-dark
+inputs:
+  api_base_url:
+    required: true
+    description: 'Canvas API endpoint base URL'
+    default: 'https://canvas.instructure.com'
+  api_token:
+    required: true
+    description: 'Canvas API client secret'
+  folder_id:
+    required: true
+    description: 'Destination folder ID; integer'
+  files:
+    required: true
+    description: 'Filenames to upload (globs allowed); multiline'
+  exclude:
+    required: false
+    description: 'Filenames to exclude (globs allowed); multiline'
+runs:
+  using: 'node16'
+  main: 'dist/index.js'

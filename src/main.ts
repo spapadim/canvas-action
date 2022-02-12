@@ -10,8 +10,9 @@ import * as glob from '@actions/glob'
 import {CanvasFileClient} from './canvas'
 
 async function run(): Promise<void> {
+  core.info(`Running on Node ${process.version}`)
+
   let uploadCount = 0 // Files successfully uploaded
-  let excludeCount = 0 // Files skipped based on exclude globs
   let errorCount = 0 // Individual file upload failures
   let failed = false // Whether *overall* job failed
 
@@ -21,28 +22,11 @@ async function run(): Promise<void> {
     const folderId: string = core.getInput('folder_id', {required: true})
     // eslint-disable-next-line prettier/prettier
     const filenames: string[] = core.getMultilineInput('files', {required: true})
-    const exclude: string[] = core.getMultilineInput('exclude')
 
     const client = new CanvasFileClient(apiToken, apiBaseUrl)
 
-    const excludeSet: Set<string> = await (async () => {
-      if (exclude) {
-        const excludeGlob = await glob.create(exclude.join('\n'))
-        return new Set(await excludeGlob.glob())
-      } else {
-        return new Set<string>()
-      }
-    })()
-
-    core.info(`Running on Node ${process.version}`)
-
     const fileGlob = await glob.create(filenames.join('\n'))
     for await (const file of fileGlob.globGenerator()) {
-      if (excludeSet.has(file)) {
-        core.info(`Skipping ${file}`)
-        ++excludeCount
-        continue
-      }
       core.info(`Uploading ${file}`)
       try {
         await client.uploadFile(folderId, file)
@@ -67,13 +51,15 @@ async function run(): Promise<void> {
     failed = true
   }
 
-  const statsMsg = `${uploadCount} uploaded, ${excludeCount} skipped, ${errorCount} failed`
+  const statsMsg = `${uploadCount} uploaded, ${errorCount} failed`
   if (failed) {
     core.error(`Action unsucessful: ${statsMsg}`)
     if (uploadCount > 0)
       core.warning('Some files were uploaded; please delete manually if needed')
   } else {
     core.notice(`Action successful: ${statsMsg}`)
+    if (errorCount > 0)
+      core.warning('Some files failed to upload; please check logs')
   }
 }
 

@@ -159,7 +159,6 @@ const glob = __importStar(__nccwpck_require__(8090));
 const canvas_1 = __nccwpck_require__(492);
 async function run() {
     let uploadCount = 0; // Files successfully uploaded
-    let excludeCount = 0; // Files skipped based on exclude globs
     let errorCount = 0; // Individual file upload failures
     let failed = false; // Whether *overall* job failed
     try {
@@ -168,25 +167,10 @@ async function run() {
         const folderId = core.getInput('folder_id', { required: true });
         // eslint-disable-next-line prettier/prettier
         const filenames = core.getMultilineInput('files', { required: true });
-        const exclude = core.getMultilineInput('exclude');
         const client = new canvas_1.CanvasFileClient(apiToken, apiBaseUrl);
-        const excludeSet = await (async () => {
-            if (exclude) {
-                const excludeGlob = await glob.create(exclude.join('\n'));
-                return new Set(await excludeGlob.glob());
-            }
-            else {
-                return new Set();
-            }
-        })();
         core.info(`Running on Node ${process.version}`);
         const fileGlob = await glob.create(filenames.join('\n'));
         for await (const file of fileGlob.globGenerator()) {
-            if (excludeSet.has(file)) {
-                core.info(`Skipping ${file}`);
-                ++excludeCount;
-                continue;
-            }
             core.info(`Uploading ${file}`);
             try {
                 await client.uploadFile(folderId, file);
@@ -211,7 +195,7 @@ async function run() {
         core.setFailed('All file uploads failed');
         failed = true;
     }
-    const statsMsg = `${uploadCount} uploaded, ${excludeCount} skipped, ${errorCount} failed`;
+    const statsMsg = `${uploadCount} uploaded, ${errorCount} failed`;
     if (failed) {
         core.error(`Action unsucessful: ${statsMsg}`);
         if (uploadCount > 0)

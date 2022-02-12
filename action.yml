@@ -18,9 +18,6 @@ inputs:
   files:
     required: true
     description: 'Filenames to upload (globs allowed); multiline'
-  exclude:
-    required: false
-    description: 'Filenames to exclude (globs allowed); multiline'
 runs:
   using: 'node16'
   main: 'dist/index.js'
